@@ -2,9 +2,12 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -43,10 +46,71 @@ func (s *apiServer) Stop(ctx context.Context) error {
 
 func (s *apiServer) registerRoutes() {
 	router := mux.NewRouter()
-	router.HandleFunc("/status", status)
+	router.HandleFunc("/status", status).Methods(http.MethodGet)
+	router.HandleFunc("/file/download", status).Methods(http.MethodGet)
+	router.HandleFunc("/file/prepare", status).Methods(http.MethodPost)
+	router.HandleFunc("/file/upload-chunk", status).Methods(http.MethodPost)
+	router.HandleFunc("/file/finalize", status).Methods(http.MethodPost)
 	s.handler = router
 }
 
 func status(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
+}
+
+func prepare(w http.ResponseWriter, r *http.Request) {
+
+	reqBody, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var req PrepareRequest
+	if err := json.Unmarshal(reqBody, &req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	res := PrepareResponse{
+		id: uuid.New(),
+	}
+
+	JsonResponse(w, res)
+}
+
+func upload(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("ok"))
+}
+
+func finalize(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("ok"))
+}
+
+func get(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("ok"))
+}
+
+type PrepareRequest struct {
+	numerOfChunks int
+	sizeInBytes   int64
+}
+
+type PrepareResponse struct {
+	id uuid.UUID
+}
+
+func JsonResponse(w http.ResponseWriter, value interface{}) {
+	b, err := json.Marshal(value)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(b); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
