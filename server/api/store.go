@@ -34,14 +34,15 @@ func (s *memoryStore) prepare() (item, error) {
 	}
 
 	i := item{
-		id:       uuid.New(),
+		id:       id,
 		tempPath: id.String(),
 		closed:   false,
 	}
+	s.files[i.id] = i
 	return i, nil
 }
 
-func (s *memoryStore) addChunk(id uuid.UUID, r io.Reader) error {
+func (s *memoryStore) addChunk(id uuid.UUID, number int, r io.Reader) error {
 	i, ok := s.files[id]
 	if !ok {
 		return fmt.Errorf("file not found with id %q", id)
@@ -51,7 +52,7 @@ func (s *memoryStore) addChunk(id uuid.UUID, r io.Reader) error {
 		return fmt.Errorf("file %q is already closed", id)
 	}
 
-	w, err := os.CreateTemp(i.tempPath, "*")
+	w, err := os.Create(fmt.Sprintf("%s/%d", i.tempPath, number))
 	if err != nil {
 		return fmt.Errorf("create chunk file: %w", err)
 	}
@@ -61,46 +62,63 @@ func (s *memoryStore) addChunk(id uuid.UUID, r io.Reader) error {
 		return fmt.Errorf("copy contents to temp file: %w", err)
 	}
 	i.chunckPaths = append(i.chunckPaths, w.Name())
+	s.files[id] = i
 	return nil
 }
 
-func (s *memoryStore) finalize(id uuid.UUID, r io.Reader) (item, error) {
+func (s *memoryStore) finalize(id uuid.UUID) error {
 	i, ok := s.files[id]
 	if !ok {
-		return item{}, fmt.Errorf("file not found with id %q", id)
+		return fmt.Errorf("file not found with id %q", id)
 	}
 
 	if i.closed {
-		return item{}, fmt.Errorf("file %q is already closed", id)
+		return fmt.Errorf("file %q is already closed", id)
 	}
 
 	w, err := os.CreateTemp(i.tempPath, fmt.Sprintf("%s_FINAL", i.id))
 
 	if err != nil {
-		return item{}, fmt.Errorf("create final file: %w", err)
+		return fmt.Errorf("create final file: %w", err)
 	}
 	defer w.Close()
 
 	for _, path := range i.chunckPaths {
 		r, err := os.OpenFile(path, os.O_RDONLY, 0644)
 		if err != nil {
-			return item{}, fmt.Errorf("read temp file %q: %w", path, err)
+			return fmt.Errorf("read temp file %q: %w", path, err)
 		}
 		defer r.Close()
 		if _, err := io.Copy(w, r); err != nil {
-			return item{}, fmt.Errorf("copy contents from temp file %q: %w", path, err)
+			return fmt.Errorf("copy contents from temp file %q: %w", path, err)
 		}
 	}
 
-	defer func() {
-		for _, path := range i.chunckPaths {
-			os.Remove(path)
-		}
-	}()
+	i.closed = true
+	i.finalPath = w.Name()
+	s.files[id] = i
 
-	if _, err := io.Copy(w, r); err != nil {
-		return item{}, fmt.Errorf("copy contents to temp file: %w", err)
+	return nil
+}
+
+func (s *memoryStore) read(id uuid.UUID, w io.Writer) error {
+	i, ok := s.files[id]
+	if !ok {
+		return fmt.Errorf("file not found with id %q", id)
 	}
-	i.chunckPaths = append(i.chunckPaths, w.Name())
-	return i, nil
+
+	if !i.closed {
+		return fmt.Errorf("file %q is not yet closed", id)
+	}
+
+	f, err := os.OpenFile(i.finalPath, os.O_RDONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("read final file: %w", err)
+	}
+	defer f.Close()
+
+	if _, err := io.Copy(w, f); err != nil {
+		return fmt.Errorf("read final file contents: %w", err)
+	}
+	return nil
 }
