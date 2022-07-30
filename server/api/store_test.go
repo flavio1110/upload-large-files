@@ -77,3 +77,45 @@ func TestStoreFlow(t *testing.T) {
 		assert.Equal("this is a chunk and this is another chunk", buf.String())
 	})
 }
+
+func TestStoreFlowWithChuncksOutOfOrder(t *testing.T) {
+	sut := NewStore()
+	var file item
+
+	t.Run("test prepare", func(t *testing.T) {
+		var err error
+		file, err = sut.prepare()
+		assert.NoError(t, err)
+	})
+
+	defer func(i item, t *testing.T) {
+		if err := os.RemoveAll(i.tempPath); err != nil {
+			t.Fatal("Fail to clean up directory", err)
+		}
+	}(file, t)
+
+	t.Run("Test add second chunk fist", func(t *testing.T) {
+		chunk := []byte(" and this is another chunk")
+		err := sut.addChunk(file.id, 2, bytes.NewReader(chunk))
+		assert.NoError(t, err)
+	})
+
+	t.Run("Test add first chunk second", func(t *testing.T) {
+		chunk := []byte("this is a chunk")
+		err := sut.addChunk(file.id, 1, bytes.NewReader(chunk))
+		assert.NoError(t, err)
+	})
+
+	t.Run("Test finalize", func(t *testing.T) {
+		err := sut.finalize(file.id)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Test Download", func(t *testing.T) {
+		var buf bytes.Buffer
+		err := sut.read(file.id, &buf)
+		assert := assert.New(t)
+		assert.NoError(err)
+		assert.Equal("this is a chunk and this is another chunk", buf.String())
+	})
+}

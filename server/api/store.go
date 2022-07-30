@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 
 	"github.com/google/uuid"
 )
@@ -82,7 +83,7 @@ func (s *memoryStore) finalize(id uuid.UUID) error {
 		return fmt.Errorf("create final file: %w", err)
 	}
 	defer w.Close()
-
+	sort.Strings(i.chunckPaths)
 	for _, path := range i.chunckPaths {
 		r, err := os.OpenFile(path, os.O_RDONLY, 0644)
 		if err != nil {
