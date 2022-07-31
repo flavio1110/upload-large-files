@@ -102,24 +102,20 @@ func (s *memoryStore) finalize(id uuid.UUID) error {
 	return nil
 }
 
-func (s *memoryStore) read(id uuid.UUID, w io.Writer) error {
+func (s *memoryStore) read(id uuid.UUID) (io.ReadCloser, error) {
 	i, ok := s.files[id]
 	if !ok {
-		return fmt.Errorf("file not found with id %q", id)
+		return nil, fmt.Errorf("file not found with id %q", id)
 	}
 
 	if !i.closed {
-		return fmt.Errorf("file %q is not yet closed", id)
+		return nil, fmt.Errorf("file %q is not yet closed", id)
 	}
 
 	f, err := os.OpenFile(i.finalPath, os.O_RDONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("read final file: %w", err)
+		return nil, fmt.Errorf("read final file: %w", err)
 	}
-	defer f.Close()
 
-	if _, err := io.Copy(w, f); err != nil {
-		return fmt.Errorf("read final file contents: %w", err)
-	}
-	return nil
+	return f, nil
 }

@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"testing"
 
@@ -70,9 +71,13 @@ func TestStoreFlow(t *testing.T) {
 	})
 
 	t.Run("Test Download", func(t *testing.T) {
-		var buf bytes.Buffer
-		err := sut.read(file.id, &buf)
+		r, err := sut.read(file.id)
 		assert := assert.New(t)
+		assert.NoError(err)
+
+		var buf bytes.Buffer
+		defer r.Close()
+		_, err = io.Copy(&buf, r)
 		assert.NoError(err)
 		assert.Equal("this is a chunk and this is another chunk", buf.String())
 	})
@@ -112,9 +117,13 @@ func TestStoreFlowWithChuncksOutOfOrder(t *testing.T) {
 	})
 
 	t.Run("Test Download", func(t *testing.T) {
-		var buf bytes.Buffer
-		err := sut.read(file.id, &buf)
+		r, err := sut.read(file.id)
 		assert := assert.New(t)
+		assert.NoError(err)
+
+		var buf bytes.Buffer
+		defer r.Close()
+		_, err = io.Copy(&buf, r)
 		assert.NoError(err)
 		assert.Equal("this is a chunk and this is another chunk", buf.String())
 	})

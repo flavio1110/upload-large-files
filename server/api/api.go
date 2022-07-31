@@ -81,7 +81,7 @@ func prepare(w http.ResponseWriter, r *http.Request) {
 	JsonResponse(w, res)
 }
 
-func upload(w http.ResponseWriter, r *http.Request) {
+func addChunk(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
