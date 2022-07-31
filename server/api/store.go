@@ -29,14 +29,15 @@ func NewStore() *memoryStore {
 
 func (s *memoryStore) prepare() (item, error) {
 	id := uuid.New()
-	err := os.Mkdir(id.String(), os.ModePerm)
+	temp := "temp/" + id.String()
+	err := os.Mkdir(temp, os.ModePerm)
 	if err != nil {
 		return item{}, fmt.Errorf("create temp directory: %w", err)
 	}
 
 	i := item{
 		id:       id,
-		tempPath: id.String(),
+		tempPath: temp,
 		closed:   false,
 	}
 	s.files[i.id] = i
