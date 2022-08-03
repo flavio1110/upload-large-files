@@ -99,7 +99,8 @@ func (s *apiServer) addChunk(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(1 << 20)
 	file, _, err := r.FormFile("chunk")
 	if err != nil {
-		fmt.Println("Error Retrieving the File", err)
+		log.Println("error to read chunk", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
