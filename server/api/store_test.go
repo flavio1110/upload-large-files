@@ -10,17 +10,19 @@ import (
 )
 
 func TestStoreFlow(t *testing.T) {
-	sut := NewStore()
+	sut := NewStore("")
 	var file item
 
 	t.Run("test prepare", func(t *testing.T) {
 		var err error
-		file, err = sut.prepare()
+		file, err = sut.prepare("text.txt", "text/plain")
 		assert := assert.New(t)
 		assert.NoError(err)
 		i, ok := sut.files[file.id]
 		assert.True(ok)
 		assert.Equal(i, file)
+		assert.Equal(i.name, "text.txt")
+		assert.Equal(i.contentType, "text/plain")
 		assert.False(file.closed)
 		assert.DirExists(file.tempPath)
 		assert.Empty(file.finalPath)
@@ -71,7 +73,7 @@ func TestStoreFlow(t *testing.T) {
 	})
 
 	t.Run("Test Download", func(t *testing.T) {
-		r, err := sut.read(file.id)
+		_, r, err := sut.read(file.id)
 		assert := assert.New(t)
 		assert.NoError(err)
 
@@ -84,12 +86,12 @@ func TestStoreFlow(t *testing.T) {
 }
 
 func TestStoreFlowWithChuncksOutOfOrder(t *testing.T) {
-	sut := NewStore()
+	sut := NewStore("")
 	var file item
 
 	t.Run("test prepare", func(t *testing.T) {
 		var err error
-		file, err = sut.prepare()
+		file, err = sut.prepare("text.txt", "text/plain")
 		assert.NoError(t, err)
 	})
 
@@ -117,7 +119,7 @@ func TestStoreFlowWithChuncksOutOfOrder(t *testing.T) {
 	})
 
 	t.Run("Test Download", func(t *testing.T) {
-		r, err := sut.read(file.id)
+		_, r, err := sut.read(file.id)
 		assert := assert.New(t)
 		assert.NoError(err)
 

@@ -15,30 +15,36 @@ type item struct {
 	chunckPaths []string
 	closed      bool
 	finalPath   string
+	name        string
+	contentType string
 }
 
 type memoryStore struct {
-	files map[uuid.UUID]item
+	files    map[uuid.UUID]item
+	basePath string
 }
 
-func NewStore() *memoryStore {
+func NewStore(basePath string) *memoryStore {
 	return &memoryStore{
-		files: make(map[uuid.UUID]item),
+		files:    make(map[uuid.UUID]item),
+		basePath: basePath,
 	}
 }
 
-func (s *memoryStore) prepare() (item, error) {
+func (s *memoryStore) prepare(name string, contentType string) (item, error) {
 	id := uuid.New()
-	temp := "temp/" + id.String()
+	temp := s.basePath + id.String()
 	err := os.Mkdir(temp, os.ModePerm)
 	if err != nil {
 		return item{}, fmt.Errorf("create temp directory: %w", err)
 	}
 
 	i := item{
-		id:       id,
-		tempPath: temp,
-		closed:   false,
+		id:          id,
+		tempPath:    temp,
+		closed:      false,
+		name:        name,
+		contentType: contentType,
 	}
 	s.files[i.id] = i
 	return i, nil
@@ -103,20 +109,20 @@ func (s *memoryStore) finalize(id uuid.UUID) error {
 	return nil
 }
 
-func (s *memoryStore) read(id uuid.UUID) (io.ReadCloser, error) {
+func (s *memoryStore) read(id uuid.UUID) (item, io.ReadCloser, error) {
 	i, ok := s.files[id]
 	if !ok {
-		return nil, fmt.Errorf("file not found with id %q", id)
+		return item{}, nil, fmt.Errorf("file not found with id %q", id)
 	}
 
 	if !i.closed {
-		return nil, fmt.Errorf("file %q is not yet closed", id)
+		return item{}, nil, fmt.Errorf("file %q is not yet closed", id)
 	}
 
 	f, err := os.OpenFile(i.finalPath, os.O_RDONLY, 0644)
 	if err != nil {
-		return nil, fmt.Errorf("read final file: %w", err)
+		return item{}, nil, fmt.Errorf("read final file: %w", err)
 	}
 
-	return f, nil
+	return i, f, nil
 }
