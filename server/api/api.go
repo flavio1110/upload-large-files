@@ -90,6 +90,7 @@ func (s *apiServer) prepare(w http.ResponseWriter, r *http.Request) {
 		log.Println("error to prepeare", err)
 		return
 	}
+	fmt.Println("prepared", f.id, request.Name, request.ContentType)
 	jsonRes(w, PrepareResponse{
 		Id: f.id,
 	})
@@ -126,7 +127,7 @@ func (s *apiServer) addChunk(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
+	fmt.Println("Added chunk", id, number)
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -145,6 +146,7 @@ func (s *apiServer) finalize(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	fmt.Println("finalized", id)
 }
 
 func (s *apiServer) download(w http.ResponseWriter, r *http.Request) {
