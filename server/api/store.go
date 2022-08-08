@@ -34,7 +34,7 @@ func NewStore(basePath string) *memoryStore {
 func (s *memoryStore) prepare(name string, contentType string) (item, error) {
 	id := uuid.New()
 	temp := s.basePath + id.String()
-	err := os.Mkdir(temp, os.ModePerm)
+	err := os.Mkdir(temp, 0777)
 	if err != nil {
 		return item{}, fmt.Errorf("create temp directory: %w", err)
 	}

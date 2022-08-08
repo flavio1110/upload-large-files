@@ -34,7 +34,7 @@ func TestUploadFlow(t *testing.T) {
 	api := NewApiServer("8888")
 	ts := httptest.NewServer(api.handler)
 	defer ts.Close()
-	if err := os.Mkdir("temp", 0604); err != nil {
+	if err := os.Mkdir("temp", 0777); err != nil {
 		t.Fatal("failed to create temp folder", err)
 	}
 	defer func() {

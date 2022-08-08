@@ -14,7 +14,7 @@ func main() {
 
 	api := api.NewApiServer(port)
 
-	if err := os.Mkdir("temp", 0604); err != nil {
+	if err := os.Mkdir("temp", 0777); err != nil {
 		fmt.Println("failed to create temp folder", err)
 	}
 	defer func() {
